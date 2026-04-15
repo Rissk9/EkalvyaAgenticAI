@@ -1,0 +1,15 @@
+langchain>=1.2.0
+langchain-core>=1.2.0
+langchain-community>=0.4.0
+langchain-openai>=1.1.0
+langchain-text-splitters>=1.1.0
+langgraph>=1.1.5
+faiss-cpu
+pypdf
+tiktoken
+python-dotenv
+pydantic>=2.7.0
+pydantic-settings>=2.10.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+requests
