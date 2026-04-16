@@ -15,7 +15,14 @@ def resume_tool(query: str) -> str:
     """Fetch relevant resume context for a given query."""
     print("➡️ Resume tool running")
     retriever = get_retriever()
+
+    if retriever is None:
+        return "No resume uploaded — unable to fetch resume context."
+
     docs = retriever.invoke(query)[:2]
+    if not docs:
+        return "No relevant resume data found for this query."
+
     context = "\n\n".join([d.page_content[:300] for d in docs])
     return context
 

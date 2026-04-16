@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -14,8 +15,8 @@ class Settings(BaseSettings):
     embedding_base_url: str = "https://openrouter.ai/api/v1"
     embedding_model: str = "text-embedding-3-small"
 
-    # Resume
-    resume_pdf_path: str = "resume.pdf"
+    # Resume — set RESUME_PDF_PATH in .env to enable RAG context
+    resume_pdf_path: Optional[str] = None
 
     # CORS
     cors_origins: list[str] = ["*"]

@@ -13,12 +13,15 @@ from backend.graph import get_graph
 
 
 # ---------------------------------------------------------------------------
-# Warm up on startup (load PDF, build vector store, compile graph)
+# Warm up on startup (compile graph; vectorstore loads if resume exists)
 # ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Starting up — loading resources...")
     get_graph()            # triggers get_vectorstore → get_embeddings internally
+    from backend.dependencies import get_retriever
+    if get_retriever() is None:
+        print("[INFO] No resume loaded -- the AI will give generic advice until a resume is provided")
     print("✅ Ready!")
     yield
 
@@ -47,7 +50,9 @@ class ChatRequest(BaseModel):
     message: str
     github_username: str | None = None
     leetcode_username: str | None = None
-    summary: str = ""           # pass back the previous summary for multi-turn
+    role: str | None = None             # target role (e.g. "SDE-1", "Backend Intern")
+    company: str | None = None          # target company (e.g. "Razorpay", "Google")
+    summary: str = ""                   # pass back the previous summary for multi-turn
 
 
 class ChatResponse(BaseModel):
@@ -73,6 +78,8 @@ def chat(req: ChatRequest):
         "data": {},
         "decision": {},
         "output": "",
+        "role": req.role or "",
+        "company": req.company or "",
     }
     if req.github_username:
         state_input["github_username"] = req.github_username

@@ -1,8 +1,13 @@
 """
 Singleton module – creates LLM, embeddings, and vectorstore ONCE at startup.
 All other modules import from here.
+
+The vectorstore and retriever are optional — if no resume PDF is found
+or embeddings fail, the app still starts and works (just without RAG context).
 """
+import os
 from functools import lru_cache
+from typing import Optional
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
@@ -34,17 +39,43 @@ def get_embeddings() -> OpenAIEmbeddings:
 
 
 @lru_cache
-def get_vectorstore() -> FAISS:
+def get_vectorstore() -> Optional[FAISS]:
+    """Build FAISS vectorstore from resume PDF. Returns None if unavailable."""
     s = get_settings()
-    loader = PyPDFLoader(s.resume_pdf_path)
-    documents = loader.load()
+    pdf_path = s.resume_pdf_path
 
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    docs = splitter.split_documents(documents)
+    if not pdf_path:
+        print("[INFO] No resume configured (RESUME_PDF_PATH not set) -- running without RAG context")
+        return None
 
-    return FAISS.from_documents(docs, get_embeddings())
+    if not os.path.exists(pdf_path):
+        print(f"[WARN] Resume PDF not found at '{pdf_path}' -- running without RAG context")
+        return None
+
+    try:
+        loader = PyPDFLoader(pdf_path)
+        documents = loader.load()
+
+        if not documents:
+            print("[WARN] Resume PDF loaded but contained no pages -- running without RAG context")
+            return None
+
+        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+        docs = splitter.split_documents(documents)
+
+        vectorstore = FAISS.from_documents(docs, get_embeddings())
+        print(f"[OK] Vectorstore built from '{pdf_path}' ({len(docs)} chunks)")
+        return vectorstore
+
+    except Exception as e:
+        print(f"[WARN] Failed to build vectorstore: {e} -- running without RAG context")
+        return None
 
 
 @lru_cache
 def get_retriever():
-    return get_vectorstore().as_retriever(search_kwargs={"k": 3})
+    """Return retriever if vectorstore is available, otherwise None."""
+    vs = get_vectorstore()
+    if vs is None:
+        return None
+    return vs.as_retriever(search_kwargs={"k": 3})

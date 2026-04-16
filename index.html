@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,7 +29,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-color);
-            background-image: 
+            background-image:
                 radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
                 radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.12) 0px, transparent 50%);
             color: var(--text-main);
@@ -89,13 +90,16 @@
         #chat-box::-webkit-scrollbar {
             width: 6px;
         }
+
         #chat-box::-webkit-scrollbar-track {
             background: transparent;
         }
+
         #chat-box::-webkit-scrollbar-thumb {
             background: var(--border-color);
             border-radius: 10px;
         }
+
         #chat-box::-webkit-scrollbar-thumb:hover {
             background: #475569;
         }
@@ -125,9 +129,14 @@
         }
 
         /* Markdown Styles inside Message */
-        .message p { margin: 0 0 10px 0; }
-        .message p:last-child { margin: 0; }
-        
+        .message p {
+            margin: 0 0 10px 0;
+        }
+
+        .message p:last-child {
+            margin: 0;
+        }
+
         .message pre {
             background: rgba(0, 0, 0, 0.4) !important;
             padding: 12px;
@@ -136,7 +145,7 @@
             border: 1px solid var(--border-color);
             margin: 10px 0;
         }
-        
+
         .message code {
             font-family: 'Consolas', 'Monaco', monospace;
             background: rgba(0, 0, 0, 0.3);
@@ -150,7 +159,8 @@
             padding: 0;
         }
 
-        .message ul, .message ol {
+        .message ul,
+        .message ol {
             margin: 10px 0;
             padding-left: 20px;
         }
@@ -164,7 +174,10 @@
             text-decoration: underline;
         }
 
-        .message h1, .message h2, .message h3, .message h4 {
+        .message h1,
+        .message h2,
+        .message h3,
+        .message h4 {
             margin-top: 15px;
             margin-bottom: 10px;
             font-size: 1.1em;
@@ -201,7 +214,7 @@
             font-size: 1rem;
             outline: none;
             transition: all 0.2s ease;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         input:focus {
@@ -235,12 +248,12 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(59, 130, 246, 0.3);
         }
-        
+
         button:active {
             transform: translateY(0);
             box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
         }
-        
+
         button:disabled {
             background: #475569;
             cursor: not-allowed;
@@ -249,8 +262,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Typing indicator bounce */
@@ -261,6 +281,7 @@
             height: 24px;
             padding: 0 5px;
         }
+
         .dot {
             width: 7px;
             height: 7px;
@@ -268,143 +289,160 @@
             border-radius: 50%;
             animation: bounce 1.4s infinite ease-in-out both;
         }
-        .dot:nth-child(1) { animation-delay: -0.32s; }
-        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        .dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
 
         @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0.6); opacity: 0.6; }
-            40% { transform: scale(1); opacity: 1; }
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0.6);
+                opacity: 0.6;
+            }
+
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
     </style>
 </head>
+
 <body>
 
-<div id="chat-container">
-    <div class="header">
-        <h2>🚀 Career Copilot</h2>
-    </div>
+    <div id="chat-container">
+        <div class="header">
+            <h2>🚀 Career Copilot</h2>
+        </div>
 
-    <div id="chat-box">
-        <!-- Welcoming Message -->
-        <div class="message-wrapper bot">
-            <div class="message">
-                Hello! I am your AI Career Mentor. Ask me about your resume, interview prep, or career guidance! ✨
+        <div id="chat-box">
+            <!-- Welcoming Message -->
+            <div class="message-wrapper bot">
+                <div class="message">
+                    Hello! I am your AI Career Mentor. Ask me about your resume, interview prep, or career guidance! ✨
+                </div>
             </div>
+        </div>
+
+        <div id="input-container">
+            <input id="message" type="text" placeholder="Ask something..." onkeypress="handleKeyPress(event)" />
+            <button id="send-btn" onclick="sendMessage()">Send</button>
         </div>
     </div>
 
-    <div id="input-container">
-        <input id="message" type="text" placeholder="Ask something..." onkeypress="handleKeyPress(event)" />
-        <button id="send-btn" onclick="sendMessage()">Send</button>
-    </div>
-</div>
+    <script>
+        // Global variable to maintain multi-turn context
+        let conversationSummary = "";
 
-<script>
-    // Global variable to maintain multi-turn context
-    let conversationSummary = "";
-    
-    const chatBox = document.getElementById("chat-box");
-    const inputField = document.getElementById("message");
-    const sendBtn = document.getElementById("send-btn");
+        const chatBox = document.getElementById("chat-box");
+        const inputField = document.getElementById("message");
+        const sendBtn = document.getElementById("send-btn");
 
-    // Configure marked to sanitize and format standard markdown beautifully
-    marked.setOptions({
-        breaks: true,
-        gfm: true
-    });
+        // Configure marked to sanitize and format standard markdown beautifully
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
 
-    // Send on 'Enter' key press
-    function handleKeyPress(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
+        // Send on 'Enter' key press
+        function handleKeyPress(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
         }
-    }
 
-    async function sendMessage() {
-        const msg = inputField.value.trim();
-        if (!msg) return;
+        async function sendMessage() {
+            const msg = inputField.value.trim();
+            if (!msg) return;
 
-        // 1. Add user message
-        addMessage(msg, "user");
-        inputField.value = "";
-        
-        // Disable input elements to prevent spam
-        inputField.disabled = true;
-        sendBtn.disabled = true;
+            // 1. Add user message
+            addMessage(msg, "user");
+            inputField.value = "";
 
-        // 2. Add loading typing indicator
-        const loadingId = "msg-" + Date.now();
-        addTypingIndicator(loadingId);
+            // Disable input elements to prevent spam
+            inputField.disabled = true;
+            sendBtn.disabled = true;
 
-        try {
-            // 3. Send request to FastAPI backend
-            const res = await fetch("http://127.0.0.1:8000/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message: msg,
-                    summary: conversationSummary
-                })
-            });
+            // 2. Add loading typing indicator
+            const loadingId = "msg-" + Date.now();
+            addTypingIndicator(loadingId);
 
-            if (!res.ok) {
-                throw new Error(`Server returned ${res.status}`);
+            try {
+                // 3. Send request to FastAPI backend
+                const res = await fetch("http://127.0.0.1:8000/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        message: msg,
+                        summary: conversationSummary
+                    })
+                });
+
+                if (!res.ok) {
+                    throw new Error(`Server returned ${res.status}`);
+                }
+
+                const data = await res.json();
+
+                // 4. Update memory summary for next turn
+                if (data.summary !== undefined) {
+                    conversationSummary = data.summary;
+                }
+
+                // 5. Remove loading UI and inject bot message 
+                // We use 'true' for isMarkdown so marked.js can re-format lists/codeblocks.
+                removeMessage(loadingId);
+                addMessage(data.output, "bot", true);
+
+            } catch (error) {
+                console.error("Error calling chat API:", error);
+                removeMessage(loadingId);
+                addMessage("⚠️ Sorry, something went wrong. Please assure the FastAPI backend is running (`uvicorn backend.main:app --reload`).", "bot", false);
+            } finally {
+                // Re-enable input
+                inputField.disabled = false;
+                sendBtn.disabled = false;
+                inputField.focus();
+            }
+        }
+
+        function addMessage(text, type, isMarkdown = false) {
+            const wrapper = document.createElement("div");
+            wrapper.className = `message-wrapper ${type}`;
+
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "message";
+
+            if (isMarkdown) {
+                msgDiv.innerHTML = marked.parse(text);
+            } else {
+                // Plain text parsing (avoids HTML injection on simple strings)
+                msgDiv.innerText = text;
             }
 
-            const data = await res.json();
-            
-            // 4. Update memory summary for next turn
-            if (data.summary !== undefined) {
-                conversationSummary = data.summary;
-            }
+            wrapper.appendChild(msgDiv);
+            chatBox.appendChild(wrapper);
+            scrollToBottom();
 
-            // 5. Remove loading UI and inject bot message 
-            // We use 'true' for isMarkdown so marked.js can re-format lists/codeblocks.
-            removeMessage(loadingId);
-            addMessage(data.output, "bot", true);
-            
-        } catch (error) {
-            console.error("Error calling chat API:", error);
-            removeMessage(loadingId);
-            addMessage("⚠️ Sorry, something went wrong. Please assure the FastAPI backend is running (`uvicorn backend.main:app --reload`).", "bot", false);
-        } finally {
-            // Re-enable input
-            inputField.disabled = false;
-            sendBtn.disabled = false;
-            inputField.focus();
-        }
-    }
-
-    function addMessage(text, type, isMarkdown = false) {
-        const wrapper = document.createElement("div");
-        wrapper.className = `message-wrapper ${type}`;
-
-        const msgDiv = document.createElement("div");
-        msgDiv.className = "message";
-
-        if (isMarkdown) {
-            msgDiv.innerHTML = marked.parse(text);
-        } else {
-            // Plain text parsing (avoids HTML injection on simple strings)
-            msgDiv.innerText = text;
+            return wrapper;
         }
 
-        wrapper.appendChild(msgDiv);
-        chatBox.appendChild(wrapper);
-        scrollToBottom();
+        function addTypingIndicator(id) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "message-wrapper bot";
+            wrapper.id = id;
 
-        return wrapper;
-    }
-
-    function addTypingIndicator(id) {
-        const wrapper = document.createElement("div");
-        wrapper.className = "message-wrapper bot";
-        wrapper.id = id;
-
-        const msgDiv = document.createElement("div");
-        msgDiv.className = "message";
-        msgDiv.innerHTML = `
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "message";
+            msgDiv.innerHTML = `
             <div class="typing">
                 <div class="dot"></div>
                 <div class="dot"></div>
@@ -412,20 +450,21 @@
             </div>
         `;
 
-        wrapper.appendChild(msgDiv);
-        chatBox.appendChild(wrapper);
-        scrollToBottom();
-    }
+            wrapper.appendChild(msgDiv);
+            chatBox.appendChild(wrapper);
+            scrollToBottom();
+        }
 
-    function removeMessage(id) {
-        const elem = document.getElementById(id);
-        if (elem) elem.remove();
-    }
+        function removeMessage(id) {
+            const elem = document.getElementById(id);
+            if (elem) elem.remove();
+        }
 
-    function scrollToBottom() {
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-</script>
+        function scrollToBottom() {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
 
 </body>
+
 </html>

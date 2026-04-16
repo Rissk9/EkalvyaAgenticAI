@@ -106,6 +106,8 @@ def update_summary(old_summary: str, query: str, response: str) -> str:
 # ---------------------------------------------------------------------------
 def decision_node(state: AgentState) -> dict:
     query = state["input"].lower().strip()
+    target_role = (state.get("role") or "").strip()
+    target_company = (state.get("company") or "").strip()
 
     # --- 0. GREETINGS (check first so they never fall through to off-topic) ---
     greeting_triggers = [
@@ -167,7 +169,8 @@ def decision_node(state: AgentState) -> dict:
         "off campus", "on campus", "package", "lpa", "work"
     ]
 
-    is_career = any(w in query for w in career_keywords)
+    # If a target company/role is set, treat the query as career-related
+    is_career = any(w in query for w in career_keywords) or bool(target_company) or bool(target_role)
 
     # --- If career-related → route normally ---
     if is_career:
@@ -202,10 +205,18 @@ def decision_node(state: AgentState) -> dict:
             use_github = True
             use_leetcode = True
 
+        # If a target company is set, force full evaluation for company-specific advice
+        if target_company:
+            use_resume = True
+            use_github = True
+            use_leetcode = True
+
         if not use_resume and not use_github:
             use_resume = True
 
         print(f"🧠 Decision → resume: {use_resume}, github: {use_github}, leetcode: {use_leetcode}")
+        if target_role or target_company:
+            print(f"🎯 Target → role: {target_role or 'any'}, company: {target_company or 'any'}")
         return {
             "decision": {
                 "use_resume": use_resume,
@@ -287,13 +298,31 @@ def response_node(state: AgentState) -> dict:
     data = state.get("data", {})
     summary = state.get("summary", "")
     decision = state.get("decision", {})
+    target_role = (state.get("role") or "").strip()
+    target_company = (state.get("company") or "").strip()
+
+    # Build a reusable context snippet for role/company
+    role_company_context = ""
+    if target_role or target_company:
+        parts = []
+        if target_role:
+            parts.append(f"Target Role: {target_role}")
+        if target_company:
+            parts.append(f"Target Company: {target_company}")
+        role_company_context = "\n".join(parts)
 
     # --- GREETING ---
     if decision.get("greeting"):
+        role_hint = ""
+        if target_role or target_company:
+            role_hint = f"""\n            The user has set a target: {role_company_context}.
+            Acknowledge this briefly in your greeting (e.g., \"I see you're aiming for
+            {target_role or 'a role'} at {target_company or 'a great company'} — nice!\")."""
         greeting_response = llm.invoke(f"""
             {MENTOR_PERSONA}
 
             The user just greeted you with: "{user_input}"
+            {role_hint}
 
             Respond with a warm, friendly, and brief greeting (2-4 lines max).
             - Introduce yourself as Pathfinder naturally dont mention tier or anything
@@ -356,10 +385,10 @@ def response_node(state: AgentState) -> dict:
     leetcode_data = data.get("leetcode")
     query = user_input.lower()
 
-    # Depth
-    if len(query.split()) <= 5:
+    # Depth — if target company is set, default to at least "medium"
+    if len(query.split()) <= 5 and not target_company:
         depth = "shallow"
-    elif any(w in query for w in ["analyze", "evaluate", "review", "compare"]):
+    elif any(w in query for w in ["analyze", "evaluate", "review", "compare"]) or target_company:
         depth = "deep"
     elif any(w in query for w in ["roadmap", "plan", "improve", "how"]):
         depth = "medium"
@@ -387,10 +416,19 @@ def response_node(state: AgentState) -> dict:
     # Cross-analysis (only deep + data present)
     interpretation = None
     if depth == "deep" and (resume_data or github_data or leetcode_data):
+        cross_role_ctx = ""
+        if role_company_context:
+            cross_role_ctx = f"""
+        Target Position:
+        {role_company_context}
+        Evaluate the candidate specifically against THIS role/company's hiring bar.
+        Consider: typical interview process, expected skills, CTC range, and hiring bar.
+        """
         interpretation = llm.invoke(f"""
         {MENTOR_PERSONA}
 
         Now cross-check this candidate's claims vs proof:
+        {cross_role_ctx}
 
         RESUME (what they CLAIM):
         {resume_data}
@@ -436,6 +474,20 @@ def response_node(state: AgentState) -> dict:
         if interpretation:
             format_instruction += "\nInclude claim vs proof insights."
 
+    # Build role/company instruction block for the final prompt
+    role_instruction = ""
+    if role_company_context:
+        role_instruction = f"""
+    TARGET POSITION:
+    {role_company_context}
+    IMPORTANT — Tailor ALL advice to THIS specific role and company:
+    - What does this company look for in candidates? (hiring bar, interview style)
+    - What specific skills/experience does this role require?
+    - What is the typical CTC range for this role at this company in India?
+    - How does the candidate's current profile compare to the expected hiring bar?
+    - What specific gaps need to be filled to be competitive for THIS position?
+    """
+
     # Final LLM call — prompt instructs model to include a natural follow-up
     final = llm.invoke(f"""
     {MENTOR_PERSONA}
@@ -445,6 +497,7 @@ def response_node(state: AgentState) -> dict:
 
     User Question:
     {user_input}
+    {role_instruction}
 
     Resume Data:
     {resume_data}

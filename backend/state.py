@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, Optional
 
 
 class AgentState(TypedDict):
@@ -7,5 +7,10 @@ class AgentState(TypedDict):
     decision: dict
     github_username: str
     leetcode_username: str
+
+    # Target role & company for tailored advice
+    role: Optional[str]
+    company: Optional[str]
+
     summary: str
     output: str
